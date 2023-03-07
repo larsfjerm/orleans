@@ -13,7 +13,7 @@ using System.Linq;
 namespace Orleans.Serialization;
 
 [Alias(WellKnownAlias)]
-public sealed class ProtobufCodec : IGeneralizedCodec, IGeneralizedCopier, ITypeFilter
+public sealed class ProtobufCodec : IGeneralizedCodec, ISpecializableCopier, ITypeFilter
 {
     public const string WellKnownAlias = "protobuf";
 
@@ -36,28 +36,8 @@ public sealed class ProtobufCodec : IGeneralizedCodec, IGeneralizedCopier, IType
         _copyableTypeSelectors = copyableTypeSelectors.Where(t => string.Equals(t.CopierName, WellKnownAlias, StringComparison.Ordinal)).ToArray();
     }
 
-    /// <inheritdoc/>
-    public object DeepCopy(object input, CopyContext context)
-    {
-        if (!context.TryGetCopy(input, out object result))
-        {
-            if (input is not IMessage protobufMessage)
-            {
-                throw new InvalidOperationException("Input is not a protobuf message");
-            }
-
-            var messageSize = protobufMessage.CalculateSize();
-            using var buffer = new PooledArrayBufferWriter();
-            var spanBuffer = buffer.GetSpan(messageSize)[..messageSize];
-            protobufMessage.WriteTo(spanBuffer);
-
-            result = protobufMessage.Descriptor.Parser.ParseFrom(spanBuffer);
-
-            context.RecordCopy(input, result);
-        }
-
-        return result;
-    }
+    /// <inheritdoc />
+    public IDeepCopier GetSpecializedCopier(Type type) => (IDeepCopier)Activator.CreateInstance(typeof(MessageCopier<>).MakeGenericType(type))!;
 
     /// <inheritdoc/>
     bool IGeneralizedCodec.IsSupportedType(Type type)
@@ -79,7 +59,7 @@ public sealed class ProtobufCodec : IGeneralizedCodec, IGeneralizedCopier, IType
     }
 
     /// <inheritdoc/>
-    bool IGeneralizedCopier.IsSupportedType(Type type)
+    bool ISpecializableCopier.IsSupportedType(Type type)
     {
         foreach (var selector in _copyableTypeSelectors)
         {
@@ -100,8 +80,8 @@ public sealed class ProtobufCodec : IGeneralizedCodec, IGeneralizedCopier, IType
             return null;
         }
 
-        return ((IGeneralizedCodec)this).IsSupportedType(type) || ((IGeneralizedCopier)this).IsSupportedType(type);
-    } 
+        return ((IGeneralizedCodec)this).IsSupportedType(type) || ((ISpecializableCopier)this).IsSupportedType(type);
+    }
 
     private static bool IsProtobufMessage(Type type)
     {
@@ -215,5 +195,10 @@ public sealed class ProtobufCodec : IGeneralizedCodec, IGeneralizedCopier, IType
         writer.Write(spanBuffer);
 
         writer.WriteEndObject();
+    }
+
+    public sealed class MessageCopier<T> : IDeepCopier<IMessage<T>> where T : class, IMessage<T>
+    {
+        public IMessage<T> DeepCopy(IMessage<T> input, CopyContext context) => input?.Clone();
     }
 }

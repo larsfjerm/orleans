@@ -59,7 +59,7 @@ public static class SerializationHostingExtensions
         {
             services.AddSingleton<ProtobufCodec>();
             services.AddFromExisting<IGeneralizedCodec, ProtobufCodec>();
-            services.AddFromExisting<IGeneralizedCopier, ProtobufCodec>();
+            services.AddFromExisting<ISpecializableCopier, ProtobufCodec>();
             services.AddFromExisting<ITypeFilter, ProtobufCodec>();
 
             serializerBuilder.Configure(options => options.WellKnownTypeAliases[ProtobufCodec.WellKnownAlias] = typeof(ProtobufCodec));
