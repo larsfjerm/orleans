@@ -58,7 +58,7 @@ public static class SerializationHostingExtensions
         if (!services.Contains(ServiceDescriptor))
         {
             services.AddSingleton<ProtobufCodec>();
-            services.AddFromExisting<IGeneralizedCodec, ProtobufCodec>();
+            services.AddFromExisting<ISpecializableCodec, ProtobufCodec>();
             services.AddFromExisting<ISpecializableCopier, ProtobufCodec>();
             services.AddFromExisting<ITypeFilter, ProtobufCodec>();
 
