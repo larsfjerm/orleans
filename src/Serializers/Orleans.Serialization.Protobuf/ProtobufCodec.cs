@@ -37,7 +37,7 @@ public sealed class ProtobufCodec : IGeneralizedCodec, ISpecializableCopier, ITy
     }
 
     /// <inheritdoc />
-    public IDeepCopier GetSpecializedCopier(Type type) => (IDeepCopier)Activator.CreateInstance(typeof(MessageCopier<>).MakeGenericType(type))!;
+    public IDeepCopier GetSpecializedCopier(Type type) => (IDeepCopier)Activator.CreateInstance(typeof(MessageCopier<>).MakeGenericType(type));
 
     /// <inheritdoc/>
     bool IGeneralizedCodec.IsSupportedType(Type type)
